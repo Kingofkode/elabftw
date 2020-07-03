@@ -5,7 +5,10 @@
     <ul>
         <li class='tabhandle' id='tab1'>{{ 'Preferences'|trans }}</li>
         <li class='tabhandle' id='tab2'>{{ 'Account'|trans }}</li>
+        <!-- Only admins can create templates -->
+        {% if App.Session.has('auth') and (App.Session.get('is_admin') == 1) %}
         <li class='tabhandle' id='tab3'>{{ 'Templates'|trans }}</li>
+        {% endif %}
         <li class='tabhandle' id='tab4'>{{ 'API keys'|trans }}</li>
     </ul>
 </menu>

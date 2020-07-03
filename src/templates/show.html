@@ -109,10 +109,13 @@
             {% else %}
             <h6 class='dropdown-header'>{{ 'No templates found'|trans }}</h6>
             {% endif %}
+            <!-- Only admins can manage templates -->
+            {% if App.Session.has('auth') and (App.Session.get('is_admin') == 1) %}
             <div class='dropdown-divider'></div>
                 <a href='ucp.php?tab=3'>
                     <li class='dropdown-item'>{{ 'Manage templates'|trans }}</li>
                 </a>
+            {% endif %}
           {% else %}
               {% for category in categoryArr %}
                   <a href='?create=true&tpl={{ category.category_id }}'>
