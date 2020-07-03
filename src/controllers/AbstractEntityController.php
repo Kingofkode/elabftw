@@ -212,7 +212,9 @@ abstract class AbstractEntityController implements ControllerInterface
         $this->App->Session->set('lastquery', $this->App->Request->query->all());
 
         $Templates = new Templates($this->Entity->Users);
-        $templatesArr = $Templates->readAll();
+
+        // Include my templates AND templates from the team (the professor's).
+        $templatesArr = $Templates->readInclusive();
 
         $template = 'show.html';
 
