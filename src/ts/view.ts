@@ -13,6 +13,9 @@ declare let key: any;
 const moment = require('moment'); // eslint-disable-line @typescript-eslint/no-var-requires
 
 $(document).ready(function() {
+  if ($('#info').data('page') !== 'view') {
+    return;
+  }
   // add the title in the page name (see #324)
   document.title = $('.title_view').text() + ' - eLabFTW';
 
@@ -25,7 +28,7 @@ $(document).ready(function() {
   });
 
   // TOGGLE LOCK
-  $('#lock').on('click', function() {
+  $(document).on('click', '#lock', function() {
     $.post('app/controllers/EntityAjaxController.php', {
       lock: true,
       type: type,
@@ -73,7 +76,7 @@ $(document).ready(function() {
   });
 
   // DUPLICATE
-  $('.duplicateItem').on('click', function() {
+  $(document).on('click', '.duplicateItem', function() {
     $.post('app/controllers/EntityAjaxController.php', {
       duplicate: true,
       id: $(this).data('id'),
@@ -84,7 +87,7 @@ $(document).ready(function() {
   });
 
   // SHARE
-  $('.shareItem').on('click', function() {
+  $(document).on('click', '.shareItem', function() {
     $.post('app/controllers/EntityAjaxController.php', {
       getShareLink: true,
       id: $(this).data('id'),
@@ -107,6 +110,20 @@ $(document).ready(function() {
         $('.modal-body').css('color', 'red');
         $('.modal-body').html(json.msg);
       }
+    });
+  });
+
+  // TOGGLE PINNED
+  $(document).on('click', '#pinIcon', function() {
+    $.post('app/controllers/EntityAjaxController.php', {
+      togglePin: true,
+      type: type,
+      id: id
+    }).done(function(json) {
+      if (json.res) {
+        $('#pinIcon').find('[data-fa-i2svg]').toggleClass('grayed-out');
+      }
+      notif(json);
     });
   });
 });

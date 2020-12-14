@@ -11,9 +11,14 @@ declare(strict_types=1);
 namespace Elabftw\Services;
 
 use Elabftw\Exceptions\ImproperActionException;
+use function filter_var;
+use function htmlspecialchars_decode;
 use function mb_strlen;
+use function nl2br;
+use function strip_tags;
 use function strlen;
 use function strtr;
+use function trim;
 
 /**
  * When values need to be filtered
@@ -28,6 +33,11 @@ class Filter
      * Anyway, a few millions characters should be enough to report an experiment.
      */
     private const MAX_BODY_SIZE = 4120000;
+
+    public static function toBinary(string $input): int
+    {
+        return $input ? 1 : 0;
+    }
 
     /**
      * Return 0 or 1 if input is on. Used for UCP.
@@ -78,11 +88,20 @@ class Filter
      */
     public static function sanitize(string $input): string
     {
-        $output = \filter_var($input, FILTER_SANITIZE_STRING);
+        $output = filter_var($input, FILTER_SANITIZE_STRING);
         if ($output === false) {
             return '';
         }
         return $output;
+    }
+
+    public static function comment(string $input): string
+    {
+        $output = self::sanitize($input);
+        if (mb_strlen($output) < 2) {
+            throw new ImproperActionException(sprintf(_('Input is too short! (minimum: %d)'), 2));
+        }
+        return nl2br($output);
     }
 
     /**
@@ -127,7 +146,7 @@ class Filter
      */
     public static function body(string $input): string
     {
-        $whitelist = '<div><br><br /><p><sub><img><sup><strong><b><em><u><a><s><font><span><ul><li><ol>
+        $whitelist = '<div><br><br /><p><sub><img><sup><strong><b><em><u><a><s><font><span><ul><li><ol><dl><dt><dd>
             <blockquote><h1><h2><h3><h4><h5><h6><hr><table><tr><th><td><code><video><audio><pagebreak><pre>
             <details><summary><figure><figcaption>';
         $body = strip_tags($input, $whitelist);
@@ -136,5 +155,26 @@ class Filter
             throw new ImproperActionException('Content is too big! Cannot save!');
         }
         return $body;
+    }
+
+    /**
+     * Sanitize tag, we remove '\' because it fucks up the javascript if you have this in the tags
+     * also remove | because we use this as separator for tags in SQL
+     *
+     * @param string $tag the tag to sanitize
+     * @return string
+     */
+    public static function tag(string $tag): string
+    {
+        $tag = filter_var($tag, FILTER_SANITIZE_STRING);
+        if ($tag === false) {
+            throw new ImproperActionException(sprintf(_('Input is too short! (minimum: %d)'), 1));
+        }
+        $tag = trim(str_replace(array('\\', '|'), array('', ' '), $tag));
+        // empty tags are disallowed
+        if ($tag === '') {
+            throw new ImproperActionException(sprintf(_('Input is too short! (minimum: %d)'), 1));
+        }
+        return $tag;
     }
 }

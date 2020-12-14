@@ -16,6 +16,7 @@ use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Exceptions\InvalidCsrfTokenException;
 use Elabftw\Models\Users;
+use Elabftw\Services\UsersHelper;
 use Exception;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -40,13 +41,15 @@ try {
     // UPDATE USERS
     if ($Request->request->has('usersUpdate')) {
         // you need to be at least admin to edit a user
-        if (!$Session->get('is_admin')) {
+        if (!$App->Session->get('is_admin')) {
             throw new IllegalActionException('Non admin user tried to edit user.');
         }
 
         $targetUser = new Users((int) $Request->request->get('userid'));
+        $UsersHelper = new UsersHelper((int) $targetUser->userData['userid']);
+        $targetUserTeams = $UsersHelper->getTeamsIdFromUserid();
         // check we edit user of our team
-        if (($App->Users->userData['team'] !== $targetUser->userData['team']) && !$Session->get('is_sysadmin')) {
+        if (!in_array((string) $App->Users->userData['team'], $targetUserTeams, true) && !$App->Session->get('is_sysadmin')) {
             throw new IllegalActionException('User tried to edit user from other team.');
         }
         // a non sysadmin cannot put someone sysadmin
@@ -57,7 +60,7 @@ try {
         $targetUser->update($Request->request->all());
     }
 
-    $Session->getFlashBag()->add('ok', _('Saved'));
+    $App->Session->getFlashBag()->add('ok', _('Saved'));
 } catch (ImproperActionException | InvalidCsrfTokenException $e) {
     // show message to user
     $App->Session->getFlashBag()->add('ko', $e->getMessage());

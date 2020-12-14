@@ -11,13 +11,16 @@ declare(strict_types=1);
 namespace Elabftw\Models;
 
 use Elabftw\Elabftw\Db;
-use Elabftw\Interfaces\CrudInterface;
+use Elabftw\Elabftw\ParamsProcessor;
+use Elabftw\Interfaces\CreatableInterface;
+use Elabftw\Interfaces\DestroyableInterface;
+use Elabftw\Interfaces\ReadableInterface;
 use PDO;
 
 /**
  * All about the experiments links
  */
-class Links implements CrudInterface
+class Links implements CreatableInterface, ReadableInterface, DestroyableInterface
 {
     /** @var AbstractEntity $Entity instance of Experiments */
     public $Entity;
@@ -38,21 +41,19 @@ class Links implements CrudInterface
 
     /**
      * Add a link to an experiment
-     *
-     * @param int $link ID of database item
-     * @return void
      */
-    public function create(int $link): void
+    public function create(ParamsProcessor $params): int
     {
+        $link = $params->id;
         $Database = new Database($this->Entity->Users, $link);
         $Database->canOrExplode('read');
         $this->Entity->canOrExplode('write');
 
         // check if this link doesn't exist already
-        $links = $this->readAll();
+        $links = $this->read();
         foreach ($links as $existingLink) {
             if ((int) $existingLink['itemid'] === $link) {
-                return;
+                return 0;
             }
         }
         // create new link
@@ -61,6 +62,8 @@ class Links implements CrudInterface
         $req->bindParam(':item_id', $this->Entity->id, PDO::PARAM_INT);
         $req->bindParam(':link_id', $link, PDO::PARAM_INT);
         $this->Db->execute($req);
+
+        return $this->Db->lastInsertId();
     }
 
     /**
@@ -68,7 +71,7 @@ class Links implements CrudInterface
      *
      * @return array links of the entity
      */
-    public function readAll(): array
+    public function read(): array
     {
         $sql = 'SELECT items.id AS itemid,
             ' . $this->Entity->type . '_links.id AS linkid,
@@ -80,7 +83,7 @@ class Links implements CrudInterface
             LEFT JOIN items ON (' . $this->Entity->type . '_links.link_id = items.id)
             LEFT JOIN items_types AS category ON (items.category = category.id)
             WHERE ' . $this->Entity->type . '_links.item_id = :id
-            ORDER by category.name ASC';
+            ORDER by category.name ASC, items.title ASC';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':id', $this->Entity->id, PDO::PARAM_INT);
         $this->Db->execute($req);
@@ -93,29 +96,69 @@ class Links implements CrudInterface
     }
 
     /**
-     * Get links from an id
+     * Get related entities
      *
-     * @param int $id
-     * @return array
+     * @return array It contains two result arrays (items, experiments).
+     * @phan-suppress PhanPluginPrintfVariableFormatString
      */
-    public function readFromId(int $id): array
+    public function readRelated(): array
     {
-        $sql = 'SELECT items.id AS itemid,
-            ' . $this->Entity->type . '_links.id AS linkid,
-            items.title,
-            items_types.name,
-            items_types.color
-            FROM ' . $this->Entity->type . '_links
-            LEFT JOIN items ON (' . $this->Entity->type . '_links.link_id = items.id)
-            LEFT JOIN items_types ON (items.category = items_types.id)
-            WHERE ' . $this->Entity->type . '_links.item_id = :id';
-        $req = $this->Db->prepare($sql);
-        $req->bindParam(':id', $id, PDO::PARAM_INT);
-        $this->Db->execute($req);
+        $res = array('items' => array(), 'experiments' => array());
 
-        $res = $req->fetchAll();
-        if ($res === false) {
-            return array();
+        foreach (array_keys($res) as $type) {
+            $sql = 'SELECT entity.id AS entityid, entity_links.id AS linkid, entity.title';
+
+            if ($type === 'items') {
+                $sql .= ', category.name, category.bookable, category.color';
+            }
+
+            $sql .= ' FROM %1$s_links as entity_links
+                LEFT JOIN %1$s AS entity ON (entity_links.item_id = entity.id)';
+
+            if ($type === 'items') {
+                $sql .= ' LEFT JOIN %1$s_types AS category ON (entity.category = category.id)';
+            }
+
+            // Only load entities from database for which the user has read permission.
+            $sql .= " LEFT JOIN users ON (entity.userid = users.userid)
+                CROSS JOIN users2teams ON (users2teams.users_id = users.userid
+                                           AND users2teams.teams_id = :team_id)
+                WHERE entity_links.link_id = :id
+                AND (entity.canread = 'public'
+                     OR entity.canread = 'organization'
+                     OR (entity.canread = 'team'
+                         AND users2teams.users_id = entity.userid)
+                     OR (entity.canread = 'user'
+                         AND entity.userid = :user_id)";
+
+            // add all the teamgroups in which the user is
+            $TeamGroups = new TeamGroups($this->Entity->Users);
+            $teamgroupsOfUser = $TeamGroups->getGroupsFromUser();
+            if (!empty($teamgroupsOfUser)) {
+                foreach ($teamgroupsOfUser as $teamgroup) {
+                    $sql .= ' OR (entity.canread = ' . $teamgroup . ')';
+                }
+            }
+
+            $sql .= ') ORDER by';
+
+            if ($type === 'items') {
+                $sql .= ' category.name ASC,';
+            }
+
+            $sql .= ' entity.title ASC';
+
+            $req = $this->Db->prepare(sprintf($sql, $type));
+            $req->bindParam(':id', $this->Entity->id, PDO::PARAM_INT);
+            $req->bindParam(':user_id', $this->Entity->Users->userData['userid'], PDO::PARAM_INT);
+            $req->bindParam(':team_id', $this->Entity->Users->userData['team'], PDO::PARAM_INT);
+
+            $this->Db->execute($req);
+
+            $partialRes = $req->fetchAll();
+            if ($partialRes !== false) {
+                $res[$type] = $partialRes;
+            }
         }
         return $res;
     }
@@ -151,17 +194,14 @@ class Links implements CrudInterface
 
     /**
      * Delete a link
-     *
-     * @param int $id ID of our link
-     * @return void
      */
-    public function destroy(int $id): void
+    public function destroy(int $id): bool
     {
         $this->Entity->canOrExplode('write');
 
         $sql = 'DELETE FROM ' . $this->Entity->type . '_links WHERE id= :id';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':id', $id, PDO::PARAM_INT);
-        $this->Db->execute($req);
+        return $this->Db->execute($req);
     }
 }

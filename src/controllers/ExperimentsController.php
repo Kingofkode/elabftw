@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Elabftw\Controllers;
 
 use Elabftw\Elabftw\App;
+use Elabftw\Elabftw\DisplayParams;
 use Elabftw\Models\Experiments;
 use Elabftw\Models\Status;
 
@@ -33,7 +34,7 @@ class ExperimentsController extends AbstractEntityController
         parent::__construct($app, $entity);
 
         $Category = new Status($this->App->Users);
-        $this->categoryArr = $Category->readAll();
+        $this->categoryArr = $Category->read();
     }
 
     /**
@@ -49,11 +50,13 @@ class ExperimentsController extends AbstractEntityController
             return $this->Entity->readRelated((int) $this->App->Request->query->get('related'));
         }
 
-        // filter by user only if we are not making a search
-        if (!$this->Entity->Users->userData['show_team'] && ($searchType === '' || $searchType === 'category')) {
+        // filter by user if we don't want to show the rest of the team
+        if (!$this->Entity->Users->userData['show_team']) {
             $this->Entity->addFilter('entity.userid', $this->App->Users->userData['userid']);
         }
 
-        return $this->Entity->readShow();
+        $DisplayParams = new DisplayParams();
+        $DisplayParams->adjust($this->App);
+        return $this->Entity->readShow($DisplayParams);
     }
 }

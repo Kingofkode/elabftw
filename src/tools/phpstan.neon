@@ -1,13 +1,20 @@
 parameters:
   level: 7
-  bootstrap: %currentWorkingDirectory%/config.php
+  checkMissingIterableValueType: false
+  bootstrapFiles:
+    - %currentWorkingDirectory%/config.php
   ignoreErrors:
-    - '#Property [a-zA-Z0-9\\_]+::\$[a-zA-Z0-9]+ type has no value type+#'
-    - '#Method [a-zA-Z0-9\\_]+::[a-zA-Z0-9]+\(\) return type has no value type+#'
-    - '#Method [a-zA-Z0-9\\_]+::[a-zA-Z0-9_]+\(\) has parameter \$[a-zA-Z0-9]+ with no value type+#'
-    - '#Property [a-zA-Z0-9\\_]+::\$[a-zA-Z0-9]+ has no typehint specified.#'
-    - '#Method Elabftw\\Services\\Check::limit\(\) should return int but returns int|false.#'
+    -
+      message: '#Variable \$App might not be defined.*#'
+      path: %currentWorkingDirectory%/web
+    -
+      message: '#Variable \$Request might not be defined.*#'
+      path: %currentWorkingDirectory%/web
+    -
+      message: '#Variable \$Auth might not be defined.*#'
+      path: %currentWorkingDirectory%/web
 
   paths:
     - %currentWorkingDirectory%/src
+    - %currentWorkingDirectory%/web
 

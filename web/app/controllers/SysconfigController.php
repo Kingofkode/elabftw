@@ -23,8 +23,8 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  */
 require_once \dirname(__DIR__) . '/init.inc.php';
 
+$tab = '1';
 try {
-    $tab = '1';
     if (!$App->Session->get('is_sysadmin')) {
         throw new IllegalActionException('Non sysadmin user tried to access sysadmin controller.');
     }
@@ -33,6 +33,11 @@ try {
     if ($Request->query->get('clearSmtppass')) {
         $tab = '6';
         $App->Config->update(array('smtp_password' => null));
+    }
+    // CLEAR LDAP PASS
+    if ($Request->query->get('clearLdappass')) {
+        $tab = '10';
+        $App->Config->update(array('ldap_password' => null));
     }
 
     // ANNOUNCEMENT
@@ -54,7 +59,7 @@ try {
         }
     }
 
-    // TAB 1 and 4 to 7
+    // TAB 1, 4 to 7 and 9
     if ($Request->request->has('updateConfig')) {
         if ($Request->request->has('lang')) {
             $tab = '1';
@@ -74,6 +79,14 @@ try {
 
         if ($Request->request->has('saml_debug')) {
             $tab = '7';
+        }
+
+        if ($Request->request->has('extauth_remote_user')) {
+            $tab = '9';
+        }
+
+        if ($Request->request->has('ldap_host')) {
+            $tab = '10';
         }
 
         $App->Config->update($Request->request->all());
@@ -102,7 +115,7 @@ try {
         $App->Config->destroyStamppass();
     }
 
-    $Session->getFlashBag()->add('ok', _('Saved'));
+    $App->Session->getFlashBag()->add('ok', _('Saved'));
 } catch (ImproperActionException $e) {
     // show message to user
     $App->Session->getFlashBag()->add('ko', $e->getMessage());

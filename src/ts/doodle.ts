@@ -6,8 +6,12 @@
  * @package elabftw
  */
 import { notif } from './misc';
+import i18next from 'i18next';
 
 $(document).ready(function() {
+  if ($('#info').data('page') !== 'edit') {
+    return;
+  }
   // store the clicks
   let clickX = [];
   let clickY = [];
@@ -15,7 +19,7 @@ $(document).ready(function() {
   let isPainting;
   const context: CanvasRenderingContext2D = (document.getElementById('doodleCanvas') as HTMLCanvasElement).getContext('2d');
 
-  function draw(dragging) {
+  function draw(dragging: boolean): void {
     // get last items in arrays
     const x = clickX[clickX.length - 1];
     const y = clickY[clickY.length - 1];
@@ -44,13 +48,13 @@ $(document).ready(function() {
     context.stroke(path);
   }
 
-  function addText(x, y, text) {
+  function addText(x: number, y: number, text: string): void {
     context.font = '18px Arial';
     context.fillStyle = $('#doodleStrokeStyle').val() as string;
     context.fillText(text, x, y);
   }
 
-  function addClick(x, y, dragging) {
+  function addClick(x: number, y: number, dragging: boolean): void {
     clickX.push(x);
     clickY.push(y);
     draw(dragging);
@@ -66,7 +70,7 @@ $(document).ready(function() {
     const image = ($('#doodleCanvas')[0] as HTMLCanvasElement).toDataURL();
     let type = $(this).data('type');
     const id = $(this).data('id');
-    const realName = prompt('Enter name of the file');
+    const realName = prompt(i18next.t('request-filename'));
     if (realName == null) {
       return;
     }

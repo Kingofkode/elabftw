@@ -10,18 +10,20 @@ declare(strict_types=1);
 
 namespace Elabftw\Models;
 
+use function count;
 use Elabftw\Elabftw\Db;
 use Elabftw\Exceptions\ImproperActionException;
-use Elabftw\Interfaces\CrudInterface;
+use Elabftw\Interfaces\DestroyableInterface;
+use function mb_strlen;
 use PDO;
 
 /**
  * All about the revisions
  */
-class Revisions implements CrudInterface
+class Revisions implements DestroyableInterface
 {
     /** @var int MIN_DELTA the min number of characters different between two versions to trigger save */
-    private const MIN_DELTA = 20;
+    private const MIN_DELTA = 100;
 
     /** @var Db $Db SQL Database */
     private $Db;
@@ -49,16 +51,24 @@ class Revisions implements CrudInterface
     public function create(string $body): void
     {
         // only save a revision if there is at least MIN_DELTA characters difference between the old version and the new one
-        if (abs(\mb_strlen($this->Entity->entityData['body'] ?? '') - \mb_strlen($body)) > self::MIN_DELTA) {
-            $sql = 'INSERT INTO ' . $this->Entity->type . '_revisions (item_id, body, userid)
-                VALUES(:item_id, :body, :userid)';
-
-            $req = $this->Db->prepare($sql);
-            $req->bindParam(':item_id', $this->Entity->id, PDO::PARAM_INT);
-            $req->bindParam(':body', $body);
-            $req->bindParam(':userid', $this->Entity->Users->userData['userid'], PDO::PARAM_INT);
-            $this->Db->execute($req);
+        $delta = abs(mb_strlen($this->Entity->entityData['body'] ?? '') - mb_strlen($body));
+        if ($delta < self::MIN_DELTA) {
+            return;
         }
+
+        // destroy the oldest revision if we're reaching the max count
+        $maxCount = $this->getMaxCount();
+        if ($maxCount !== 0 && ($this->readCount() >= $maxCount)) {
+            $this->destroyOld();
+        }
+        $sql = 'INSERT INTO ' . $this->Entity->type . '_revisions (item_id, body, userid)
+            VALUES(:item_id, :body, :userid)';
+
+        $req = $this->Db->prepare($sql);
+        $req->bindParam(':item_id', $this->Entity->id, PDO::PARAM_INT);
+        $req->bindParam(':body', $body);
+        $req->bindParam(':userid', $this->Entity->Users->userData['userid'], PDO::PARAM_INT);
+        $this->Db->execute($req);
     }
 
     /**
@@ -123,13 +133,52 @@ class Revisions implements CrudInterface
     }
 
     /**
-     * Not implemented
+     * Destroy a revision
+     */
+    public function destroy(int $id): bool
+    {
+        $sql = 'DELETE FROM ' . $this->Entity->type . '_revisions WHERE id = :id';
+        $req = $this->Db->prepare($sql);
+        $req->bindParam(':id', $id, PDO::PARAM_INT);
+        return $this->Db->execute($req);
+    }
+
+    public function prune(): int
+    {
+        $numberToRemove = 0;
+        $current = count($this->readAll());
+        $max = $this->getMaxCount();
+        if ($current > $max) {
+            $numberToRemove = $max - $current;
+            $this->destroyOld($numberToRemove);
+        }
+        return $numberToRemove;
+    }
+
+    /**
+     * Get the maximum number of revisions allowed to be stored
      *
-     * @param int $id
+     * @return int
+     */
+    private function getMaxCount(): int
+    {
+        $Config = new Config();
+        return (int) $Config->configArr['max_revisions'];
+    }
+
+    /**
+     * Destroy old revisions
+     *
+     * @param int $num number of old revisions to destroy
      * @return void
      */
-    public function destroy(int $id): void
+    private function destroyOld(int $num = 1): void
     {
+        $oldestRevisions = array_slice(array_reverse($this->readAll()), 0, $num);
+        foreach ($oldestRevisions as $revision) {
+            $idToDelete = (int) $revision['id'];
+            $this->destroy($idToDelete);
+        }
     }
 
     /**

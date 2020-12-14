@@ -16,7 +16,10 @@
 [![License](https://img.shields.io/badge/license-AGPL-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
 [![Release](https://img.shields.io/github/release/elabftw/elabftw.svg)](https://github.com/elabftw/elabftw/releases/latest)
 [![StackShare](https://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/elabftw/elabftw)
-[![Joss](http://joss.theoj.org/papers/10.21105/joss.00146/status.svg)](http://joss.theoj.org/papers/10.21105/joss.00146)
+[![Joss](http://joss.theoj.org/papers/10.21105/joss.00146/status.svg)](http://joss.theoj.org/papers/10.21105/joss.00146)<br>
+[![Carbon offset](https://img.shields.io/ecologi/carbon/deltablot)](https://ecologi.com/deltablot)
+[![Trees](https://img.shields.io/ecologi/trees/deltablot)](https://ecologi.com/deltablot)
+[![Plant more](https://img.shields.io/badge/trees-plant%20more%20trees-brightgreen)](https://ecologi.com/?r=5f668f69232cc100192fbd04)
 
 # Description
 
@@ -36,7 +39,7 @@ Without a server, even an old computer with 1 GB of RAM and an old CPU can be us
 
 # Installation
 
-**eLabFTW** can easily be installed on any GNU/Linux server. It requires at least 512 MB of RAM (1 GB recommended) and 300 MB of disk space. Installation is done through Docker, so [Docker](https://www.docker.com/) needs to be installed on your computer. Since it runs in a Docker container, php, webservers or mysql do not have to be installed on your server.  Everything is provided by the containers so different versions and extensions do not matter. This makes upgrading versions much easier.
+**eLabFTW** can easily be installed on any GNU/Linux server. It requires at least 512 MB of RAM (1 GB recommended) and 300 MB of disk space. Installation is done through Docker, so [Docker](https://www.docker.com/) needs to be installed on the server. Since it runs in a Docker container, php, webservers or mysql do not have to be installed on your server.  Everything is provided by the containers so different versions and extensions do not matter. This makes upgrading versions much easier.
 
 The documentation explains everything:
 
@@ -85,3 +88,10 @@ This project is backed by [Institut Curie](https://science.curie.fr/) and [Delta
 </p>
 
 Thank you for using **eLabFTW**. I hope it will bring happiness to your lab ;)
+
+# Related projects
+
+These projects were created by users of eLabFTW, check them out if interested!
+
+* [din14970/elabftwqrprint](https://github.com/din14970/elabftwqrprint): python library to print QR codes from database objects
+* [shabihsherjeel/nionswift_elabftw_plugin](https://github.com/shabihsherjeel/nionswift_elabftw_plugin): python plugin for [Nionswift](https://github.com/nion-software/nionswift)

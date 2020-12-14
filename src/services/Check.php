@@ -12,6 +12,9 @@ namespace Elabftw\Services;
 
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
+use function filter_var;
+use function in_array;
+use function mb_strlen;
 
 /**
  * When values need to be checked
@@ -20,6 +23,9 @@ class Check
 {
     /** the minimum password length */
     public const MIN_PASSWORD_LENGTH = 8;
+
+    /** cookie is a sha1 sum: 64 chars */
+    private const COOKIE_LENGTH = 64;
 
     /**
      * Check the number of character of a password
@@ -30,7 +36,7 @@ class Check
      */
     public static function passwordLength(string $password): bool
     {
-        if (\mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
+        if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
             throw new ImproperActionException(sprintf(_('Password must contain at least %d characters.'), self::MIN_PASSWORD_LENGTH));
         }
         return true;
@@ -95,7 +101,7 @@ class Check
                 'min_range' => 1,
                 'max_range' => 500,
             ),
-            FILTER_NULL_ON_FAILURE,
+            'flags' => FILTER_NULL_ON_FAILURE,
         );
         return filter_var($limit, FILTER_VALIDATE_INT, $filterOptions);
     }
@@ -119,6 +125,36 @@ class Check
     }
 
     /**
+     * Check orderby param
+     *
+     * @param string $input
+     * @return string
+     */
+    public static function orderby(string $input): string
+    {
+        $allowed = array('cat', 'date', 'title', 'comment', 'lastchange');
+        if (!in_array($input, $allowed, true)) {
+            throw new ImproperActionException('Invalid orderby');
+        }
+        return $input;
+    }
+
+    /**
+     * Check sort param
+     *
+     * @param string $input
+     * @return string
+     */
+    public static function sort(string $input): string
+    {
+        $allowed = array('asc', 'desc');
+        if (!in_array($input, $allowed, true)) {
+            throw new ImproperActionException('Invalid sort');
+        }
+        return $input;
+    }
+
+    /**
      * Check if we have a correct value for visibility
      *
      * @param string $visibility
@@ -133,7 +169,7 @@ class Check
             'user',
         );
 
-        if (!\in_array($visibility, $validArr, true) && self::id((int) $visibility) === false) {
+        if (!in_array($visibility, $validArr, true) && self::id((int) $visibility) === false) {
             throw new IllegalActionException('The visibility parameter is wrong.');
         }
 
@@ -153,10 +189,21 @@ class Check
             'write',
         );
 
-        if (!\in_array($rw, $validArr, true)) {
+        if (!in_array($rw, $validArr, true)) {
             throw new IllegalActionException('The read/write parameter is wrong.');
         }
 
         return $rw;
+    }
+
+    /**
+     * Check the cookie token
+     */
+    public static function token(string $token): string
+    {
+        if (mb_strlen($token) !== self::COOKIE_LENGTH) {
+            throw new IllegalActionException('Invalid cookie!');
+        }
+        return Filter::sanitize($token);
     }
 }

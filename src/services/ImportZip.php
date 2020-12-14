@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace Elabftw\Services;
 
+use Elabftw\Elabftw\ParamsProcessor;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Models\AbstractEntity;
 use Elabftw\Models\Database;
@@ -137,7 +138,7 @@ class ImportZip extends AbstractImport
     /**
      * The main SQL to create a new item with the title and body we have
      *
-     * @param array $item the item to insert
+     * @param array<string, mixed> $item the item to insert
      * @throws ImproperActionException
      * @return void
      */
@@ -214,7 +215,7 @@ class ImportZip extends AbstractImport
     {
         $tagsArr = explode('|', $tags);
         foreach ($tagsArr as $tag) {
-            $this->Entity->Tags->create($tag);
+            $this->Entity->Tags->create(new ParamsProcessor(array('tag' => $tag)));
         }
     }
 

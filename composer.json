@@ -12,6 +12,7 @@
     "ext-gettext": "*",
     "ext-hash": "*",
     "ext-json": "*",
+    "ext-ldap": "*",
     "ext-mbstring": "*",
     "ext-openssl": "*",
     "ext-gd": "*",
@@ -20,19 +21,24 @@
     "defuse/php-encryption": "2.2.*",
     "mpdf/mpdf": "8.0.*",
     "swiftmailer/swiftmailer": "6.2.*",
-    "onelogin/php-saml": "3.4.*",
-    "guzzlehttp/guzzle": "^6.5.2",
-    "symfony/http-foundation": "5.0.*",
-    "twig/twig": "2.12.*",
+    "onelogin/php-saml": "3.5.*",
+    "guzzlehttp/guzzle": "^7.0.1",
+    "symfony/http-foundation": "^5.1.0",
+    "twig/twig": "^2.13.0",
     "twig/extensions": "1.5.*",
-    "monolog/monolog": "2.0.*",
+    "monolog/monolog": "^2.1.0",
     "maennchen/zipstream-php": "^2.0.0",
     "league/csv": "^9.4",
     "mpdf/qrcode": "^1.0",
     "symfony/console": "^5.0",
     "symfony/process": "^5.0",
     "league/commonmark": "^1.0",
-    "symfony/filesystem": "^5.0"
+    "symfony/filesystem": "^5.0",
+    "symfony/mime": "^5.1",
+    "robthree/twofactorauth": "^1.7.0",
+    "directorytree/ldaprecord": "^1.11",
+    "league/flysystem": "^1.1",
+    "league/flysystem-memory": "^1.0"
   },
   "require-dev": {
     "roave/security-advisories": "dev-master",
@@ -63,6 +69,9 @@
       ],
       "Elabftw\\Interfaces\\": [
         "src/interfaces"
+      ],
+      "Elabftw\\Maps\\": [
+        "src/maps"
       ],
       "Elabftw\\Models\\": [
         "src/models"

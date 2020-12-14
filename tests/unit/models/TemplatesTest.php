@@ -9,6 +9,8 @@
 
 namespace Elabftw\Models;
 
+use Elabftw\Elabftw\ParamsProcessor;
+
 class TemplatesTest extends \PHPUnit\Framework\TestCase
 {
     protected function setUp(): void
@@ -16,9 +18,9 @@ class TemplatesTest extends \PHPUnit\Framework\TestCase
         $this->Templates= new Templates(new Users(1, 1));
     }
 
-    public function testCreateNew()
+    public function testCreate()
     {
-        $this->Templates->createNew('Test tpl', 'pwet', 1);
+        $this->Templates->create(new ParamsProcessor(array('name' => 'Test tpl', 'template' => 'pwet')));
     }
 
     public function testRead()
@@ -27,25 +29,20 @@ class TemplatesTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue(is_array($this->Templates->read()));
     }
 
+    public function testGetWriteableTemplatesList()
+    {
+        $this->assertTrue(is_array($this->Templates->getWriteableTemplatesList()));
+    }
+
     public function testDuplicate()
     {
         $this->Templates->setId(1);
         $this->assertIsInt($this->Templates->duplicate());
     }
 
-    public function testReadAll()
+    public function testReadForUser()
     {
-        $this->assertTrue(is_array($this->Templates->readAll()));
-    }
-
-    public function testReadFromTeam()
-    {
-        $this->assertTrue(is_array($this->Templates->readFromTeam()));
-    }
-
-    public function testReadInclusive()
-    {
-        $this->assertTrue(is_array($this->Templates->readInclusive()));
+        $this->assertTrue(is_array($this->Templates->readForUser()));
     }
 
     public function testReadCommonBody()
@@ -66,6 +63,6 @@ class TemplatesTest extends \PHPUnit\Framework\TestCase
 
     public function testDestroy()
     {
-        $this->Templates->destroy();
+        $this->Templates->destroy(1);
     }
 }

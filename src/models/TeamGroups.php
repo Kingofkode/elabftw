@@ -11,10 +11,12 @@ declare(strict_types=1);
 namespace Elabftw\Models;
 
 use Elabftw\Elabftw\Db;
+use Elabftw\Elabftw\ParamsProcessor;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Interfaces\CrudInterface;
-use Elabftw\Services\Check;
+use function is_bool;
+use function mb_strlen;
 use PDO;
 
 /**
@@ -41,21 +43,19 @@ class TeamGroups implements CrudInterface
 
     /**
      * Create a team group
-     *
-     * @param string $name Name of the group
-     * @return void
      */
-    public function create(string $name): void
+    public function create(ParamsProcessor $params): int
     {
-        $name = filter_var($name, FILTER_SANITIZE_STRING);
-        if ($name === false || \mb_strlen($name) < 2) {
+        if (mb_strlen($params->name) < 2) {
             throw new ImproperActionException(sprintf(_('Input is too short! (minimum: %d)'), 2));
         }
         $sql = 'INSERT INTO team_groups(name, team) VALUES(:name, :team)';
         $req = $this->Db->prepare($sql);
-        $req->bindParam(':name', $name);
+        $req->bindParam(':name', $params->name);
         $req->bindParam(':team', $this->Users->userData['team'], PDO::PARAM_INT);
         $this->Db->execute($req);
+
+        return $this->Db->lastInsertId();
     }
 
     /**
@@ -63,11 +63,11 @@ class TeamGroups implements CrudInterface
      *
      * @return array all team groups with users in group as array
      */
-    public function readAll(): array
+    public function read(): array
     {
         $fullGroups = array();
 
-        $sql = 'SELECT DISTINCT id, name FROM team_groups CROSS JOIN users2teams ON (users2teams.teams_id = team_groups.team AND users2teams.teams_id = :team)';
+        $sql = 'SELECT DISTINCT id, name FROM team_groups CROSS JOIN users2teams ON (users2teams.teams_id = team_groups.team AND users2teams.teams_id = :team) ORDER BY name';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':team', $this->Users->userData['team'], PDO::PARAM_INT);
         $this->Db->execute($req);
@@ -112,20 +112,15 @@ class TeamGroups implements CrudInterface
             'team' => _('Only the team'),
             'user' => _('Only me'),
         );
-        $groups = $this->readAll();
+        $groups = $this->readGroupsFromUser();
 
         foreach ($groups as $group) {
-            // only add the teamGroup to the list if user is part of it
-            foreach ($group['users'] as $userInGroup) {
-                if (\in_array($this->Users->userData['fullname'], $userInGroup, true)) {
-                    $idArr[] = $group['id'];
-                    $nameArr[] = $group['name'];
-                }
-            }
+            $idArr[] = $group['id'];
+            $nameArr[] = $group['name'];
         }
 
         $tgArr = array_combine($idArr, $nameArr);
-        if ($tgArr === false) {
+        if (is_bool($tgArr)) {
             return $visibilityArr;
         }
 
@@ -154,25 +149,17 @@ class TeamGroups implements CrudInterface
     /**
      * Update the name of the group
      * The request comes from jeditable
-     *
-     * @param string $name Name of the group
-     * @param string $id teamgroup_1
-     * @return string $name Name of the group if success
      */
-    public function update(string $name, string $id): string
+    public function update(ParamsProcessor $params): string
     {
-        $idArr = explode('_', $id);
-        if (Check::id((int) $idArr[1]) === false) {
-            throw new IllegalActionException('Bad id');
-        }
         $sql = 'UPDATE team_groups SET name = :name WHERE id = :id AND team = :team';
         $req = $this->Db->prepare($sql);
-        $req->bindParam(':name', $name);
+        $req->bindParam(':name', $params->name, PDO::PARAM_STR);
         $req->bindParam(':team', $this->Users->userData['team'], PDO::PARAM_INT);
-        $req->bindParam(':id', $idArr[1], PDO::PARAM_INT);
+        $req->bindParam(':id', $params->id, PDO::PARAM_INT);
         $this->Db->execute($req);
         // the group name is returned so it gets back into jeditable input field
-        return $name;
+        return $params->name;
     }
 
     /**
@@ -201,28 +188,34 @@ class TeamGroups implements CrudInterface
 
     /**
      * Delete a team group
-     *
-     * @param int $id Id of the group to destroy
-     * @return void
      */
-    public function destroy(int $id): void
+    public function destroy(int $id): bool
     {
         // TODO add fk to do that
-        $sql = "UPDATE experiments SET canread = 'team' WHERE canread = :id";
+        $sql = "UPDATE experiments SET canread = 'team', canwrite = 'user' WHERE canread = :id OR canwrite = :id";
         $req = $this->Db->prepare($sql);
-        // note: setting PDO::PARAM_INT here will throw error because it can also be string value!
-        $req->bindParam(':id', $id);
-        $this->Db->execute($req);
+        // note: setting PDO::PARAM_INT here will throw error because the column type is varchar
+        $req->bindParam(':id', $id, PDO::PARAM_STR);
+        $res1 = $this->Db->execute($req);
+
+        // same for items but canwrite is team
+        $sql = "UPDATE items SET canread = 'team', canwrite = 'team' WHERE canread = :id OR canwrite = :id";
+        $req = $this->Db->prepare($sql);
+        // note: setting PDO::PARAM_INT here will throw error because the column type is varchar
+        $req->bindParam(':id', $id, PDO::PARAM_STR);
+        $res2 = $this->Db->execute($req);
 
         $sql = 'DELETE FROM team_groups WHERE id = :id';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':id', $id, PDO::PARAM_INT);
-        $this->Db->execute($req);
+        $res3 = $this->Db->execute($req);
 
         $sql = 'DELETE FROM users2team_groups WHERE groupid = :id';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':id', $id, PDO::PARAM_INT);
-        $this->Db->execute($req);
+        $res4 = $this->Db->execute($req);
+
+        return $res1 && $res2 && $res3 && $res4;
     }
 
     /**
@@ -279,6 +272,24 @@ class TeamGroups implements CrudInterface
         }
         foreach ($res as $group) {
             $groups[] = $group['groupid'];
+        }
+        return $groups;
+    }
+
+    public function readGroupsFromUser(): array
+    {
+        $sql = 'SELECT DISTINCT team_groups.id, team_groups.name
+            FROM team_groups
+            CROSS JOIN users2team_groups ON (
+                users2team_groups.userid = :userid AND team_groups.id = users2team_groups.groupid
+            )';
+        $req = $this->Db->prepare($sql);
+        $req->bindParam(':userid', $this->Users->userData['userid'], PDO::PARAM_INT);
+        $this->Db->execute($req);
+
+        $groups = $req->fetchAll();
+        if ($groups === false) {
+            return array();
         }
         return $groups;
     }

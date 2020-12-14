@@ -4,7 +4,8 @@
 .scannerwork
 *.bak
 apidoc/html
-_srcdoc
+_srcdoc/
+_coverage/
 build
 cache
 config.php*
@@ -15,6 +16,7 @@ config.php*
 *.bundle.js
 node_modules/*
 web/test.php
+web/app/js/*.LICENSE.txt
 tests/_output/*
 tests/_support/_generated*
 uploads
@@ -24,3 +26,4 @@ web/app/css/tinymce/fonts/*.woff
 src/ts/*.js
 web/app/js/scripts-tags.html
 .DS_Store
+src/ts/langs/*.js

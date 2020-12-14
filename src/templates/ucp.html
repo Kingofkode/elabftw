@@ -1,8 +1,7 @@
 {% extends 'base.html' %}
 
 {% block body %}
-<menu>
-    <ul>
+<ul id='menu'>
         <li class='tabhandle' id='tab1'>{{ 'Preferences'|trans }}</li>
         <li class='tabhandle' id='tab2'>{{ 'Account'|trans }}</li>
         <!-- Only admins can create templates -->
@@ -10,8 +9,7 @@
         <li class='tabhandle' id='tab3'>{{ 'Templates'|trans }}</li>
         {% endif %}
         <li class='tabhandle' id='tab4'>{{ 'API keys'|trans }}</li>
-    </ul>
-</menu>
+</ul>
 
 <!-- Modal for edit permissions -->
 <div class='modal fade' id='permModal' tabindex='-1' role='dialog' aria-labelledby='permModalLabel' aria-hidden='true'>
@@ -28,7 +26,7 @@
         <div class='form-group'>
           <i class='fas fa-eye' title='Visibility'></i>
           <label for='canread_select'>{{ 'Visibility'|trans }}</label>
-          <select id='canread_select' class='permissionSelect form-control' data-rw='read'>
+          <select id='canread_select' class='permissionSelectTpl form-control' data-rw='read' data-id='{{ App.Request.query.get('templateid') }}'>
             {% for key, value in visibilityArr %}
             <option value='{{ key }}'>{{ value|trans }}</option>
             {% endfor %}
@@ -36,7 +34,7 @@
           <!-- CAN WRITE -->
           <i class='fas fa-pencil-alt' title='Can write'></i>
           <label for='canwrite_select'>{{ 'Can write'|trans }}</label>
-          <select id='canwrite_select' class='permissionSelect form-control' data-rw='write'>
+          <select id='canwrite_select' class='permissionSelectTpl form-control' data-rw='write' data-id='{{ App.Request.query.get('templateid') }}'>
             {% for key, value in visibilityArr %}
             <option value='{{ key }}'>{{ value|trans }}</option>
             {% endfor %}
@@ -73,7 +71,7 @@
       <h3>{{ 'Display'|trans }}</h3>
       <hr>
       <label for='limit'>{{ 'Items per page:'|trans }}</label>
-      <input id='limit' class='form-control col-md-2' type='text' size='2' maxlength='2' value='{{ App.Users.userData.limit_nb }}' name='limit'>
+      <input id='limit' class='form-control col-md-2' type='text' size='2' maxlength='2' value='{{ App.Users.userData.limit_nb }}' name='limit_nb'>
 
       <label for='display_size'>{{ 'Display size:'|trans }}</label>
       <select id='display_size' name='display_size' class='form-control col-md-3'>
@@ -108,7 +106,6 @@
     <section class='box'>
         <h3>{{ 'Keyboard Shortcuts'|trans }}</h3>
         <p>{{ 'Only lowercase letters are allowed.'|trans }}</p>
-        <p>
             <table>
             <tr><th>{{ 'Action'|trans }}</th>
                 <th>{{ 'Shortcut'|trans }}</th></tr>
@@ -129,7 +126,6 @@
                 <input type='text' pattern='[a-z]' size='1' maxlength='1' value='{{ App.Users.userData.sc_todo }}' name='sc_todo' />
                 </td></tr>
             </table>
-        </p>
     </section>
 
     <!-- PDF CONFIG -->
@@ -139,9 +135,9 @@
         <p>
         <label for='pdf_format'>{{ 'Select paper format for PDF'|trans }}</label>
         <select id='pdf_format' name='pdf_format'>
-            <option value='A4' {{ App.Users.userData.pdf_format == 'A4' ? 'selected' : '' }}>A4</option>
-            <option value='LETTER' {{ App.Users.userData.pdf_format == 'LETTER' ? 'selected' : '' }}>Letter</option>
-            <option value='ROYAL' {{ App.Users.userData.pdf_format == 'ROYAL' ? 'selected' : '' }}>Royal</option>
+            <option value='A4'{{ App.Users.userData.pdf_format == 'A4' ? ' selected' : '' }}>A4</option>
+            <option value='LETTER'{{ App.Users.userData.pdf_format == 'LETTER' ? ' selected' : '' }}>Letter</option>
+            <option value='ROYAL'{{ App.Users.userData.pdf_format == 'ROYAL' ? ' selected' : '' }}>Royal</option>
         </select>
         <br>
 
@@ -178,10 +174,10 @@
         />
         <label for='show_team'>{{ 'Show experiments from the team on the Experiments page'|trans }}</label>
         <br>
-        <input id='show_team_template' type='checkbox' name='show_team_template'
-               {{ App.Users.userData.show_team_template == '1' ? " checked='checked'" }}
+        <input id='show_team_templates' type='checkbox' name='show_team_templates'
+               {{ App.Users.userData.show_team_templates == '1' ? " checked='checked'" }}
         />
-        <label for='show_team_template'>{{ 'Show templates from the team on the Templates page and in the menus'|trans }}</label>
+        <label for='show_team_templates'>{{ 'Show templates from the team on the Templates page and in the menus'|trans }}</label>
         <br>
         <input id='chem_editor' type='checkbox' name='chem_editor'
           {{ App.Users.userData.chem_editor == '1' ? " checked='checked'" }}
@@ -243,10 +239,9 @@
     </section>
 
     <div class='text-center mt-3'>
-        <button type="submit" name="Submit" class='button btn btn-primary'>{{ 'Save'|trans }}</button>
+        <button type='submit' name='Submit' class='button btn btn-primary'>{{ 'Save'|trans }}</button>
     </div>
 
-    </p>
   </form>
 
 </div>
@@ -261,21 +256,47 @@
         <div class='col-md-6'>
           <h4>{{ 'Modify your personal informations'|trans }}</h4>
           <label for='currpass'>{{ 'Enter your password to edit your profile.'|trans }}</label>
-          <input class='form-control' id='currpass' name='currpass' type='password' autocomplete='off' pattern='.{8,}' required />
+          <div class='input-group'>
+            <input class='form-control' id='currpass' name='currpass' type='password' autocomplete='off' pattern='.{8,}' required />
+            <div class='input-group-append'>
+              <span class='btn btn-light input-border togglePassword' tabindex='-1' data-toggle='#currpass'><i class='fas fa-eye' aria-hidden='true'></i></span>
+            </div>
+          </div>
           <label for='email'>{{ 'Email'|trans }}</label>
           <input class='form-control' name='email' id='email' type='email' value='{{ App.Users.userData.email }}' />
         </div>
         <div class='col-md-6'>
           <h4>{{ 'Modify your password'|trans }}</h4>
           <label for='newpass'>{{ 'New password'|trans }}</label>
-          <input class='form-control' id='newpass' autocomplete='new-password' name="newpass" type="password" pattern=".{8,}" />
+          <div class='input-group'>
+            <input class='form-control' id='newpass' autocomplete='new-password' name='newpass' type='password' pattern='.{8,}' />
+            <div class='input-group-append'>
+              <span class='btn btn-light input-border togglePassword' tabindex='-1' data-toggle='#newpass'><i class='fas fa-eye' aria-hidden='true'></i></span>
+            </div>
+          </div>
           <label for='cnewpass'>{{ 'Confirm new password'|trans }}</label>
-          <input class='form-control' id='cnewpass' autocomplete='new-password' name="cnewpass" type="password" pattern=".{8,}" />
+          <div class='input-group'>
+            <input class='form-control' id='cnewpass' autocomplete='new-password' name='cnewpass' type='password' pattern='.{8,}' />
+            <div class='input-group-append'>
+              <span class='btn btn-light input-border togglePassword' tabindex='-1' data-toggle='#cnewpass'><i class='fas fa-eye' aria-hidden='true'></i></span>
+            </div>
+          </div>
         </div>
       </div>
 
         <hr><br>
+        <h4>{{ 'Two Factor Authentication'|trans }}</h4>
+        <div class='row'>
+          <div class='col-md-6'>
+            <label for='use_mfa'>{{ 'Use two-factor authentication?'|trans }}</label>
+            <select class='form-control' autocomplete='off' name='use_mfa' id='use_mfa'>
+              <option value='on'{{ App.Users.userData.mfa_secret ? ' selected' }}>{{ 'Yes'|trans }}</option>
+              <option value='off'{{ not App.Users.userData.mfa_secret ? ' selected' }}>{{ 'No'|trans }}</option>
+            </select>
+          </div>
+        </div>
 
+        <hr><br>
         <h4>{{ 'Modify your identity'|trans }}</h4>
 
         <div class='row'>
@@ -295,21 +316,21 @@
         <div class='row'>
             <div class='col-md-6'>
                 <label for='phone'>{{ 'Phone'|trans }} </label>
-                <input class='form-control' id='phone' name='phone' value='{{ App.Users.userData.phone }}' cols='20' rows='1' />
+                <input class='form-control' id='phone' name='phone' value='{{ App.Users.userData.phone }}' />
             </div>
             <div class='col-md-6'>
                 <label for='cellphone'>{{ 'Mobile'|trans }}</label>
-                <input class='form-control' id='cellphone' name='cellphone' value='{{ App.Users.userData.cellphone }}' cols='20' rows='1' />
+                <input class='form-control' id='cellphone' name='cellphone' value='{{ App.Users.userData.cellphone }}' />
             </div>
         </div>
         <div class='row'>
             <div class='col-md-6'>
                 <label for='skype'>{{ 'Skype'|trans }}</label>
-                <input class='form-control' id='skype' name='skype' value='{{ App.Users.userData.skype }}' cols='20' rows='1' />
+                <input class='form-control' id='skype' name='skype' value='{{ App.Users.userData.skype }}' />
             </div>
             <div class='col-md-6'>
                 <label for='website'>{{ 'Website'|trans }}</label>
-                <input class='form-control' id='website' name='website' type='url' value='{{ App.Users.userData.website }}' cols='20' rows='1' />
+                <input class='form-control' id='website' name='website' type='url' value='{{ App.Users.userData.website }}' />
             </div>
         </div>
 
@@ -322,148 +343,7 @@
 </div>
 <!-- TAB 3 - USER TEMPLATES -->
 <div class='divhandle' id='tab3div'>
-
-<div class='box'>
-    <h3>{{ 'Experiment Templates'|trans }}</h3>
-    <ul class='nav nav-pills sortable' data-axis='x' data-table='experiments_templates' role='tablist'>
-        <li class='subtabhandle clickable badge badge-secondary badgetab badgetabactive nonSortable' id='subtab_1'>{{ 'Create new'|trans }}</li>
-        {% for template in templatesArr %}
-        <li class='subtabhandle clickable badge badge-secondary badgetab' data-id='{{ template.id }}' id='subtab_{{ template.id }}'><i style='color: #fff' class='fas fa-sort sortableHandle'></i> {{ template.name|raw }}</li>
-        {% endfor %}
-    </ul>
-    <hr>
-
-    <!-- CREATE NEW TPL TAB -->
-    <div class='subdivhandle' id='subtab_1div'>
-        <div class='mb-2'>
-        <i class='fas fa-upload' title='Import template'></i>
-        <p id='import-from-file' class='d-inline clickable'>{{ 'Import from File'|trans }}</p>
-        </div>
-        <form action='app/controllers/UcpController.php' method='post'>
-            {{ App.Csrf.getHiddenInput|raw }}
-            <input type='hidden' name='new_tpl_form' />
-            <input type='file' accept='.tpl' id='import_tpl'>
-            <input required type='text' class='form-control' name='new_tpl_name' id='new_tpl_name' pattern='.{3,}' placeholder='{{ 'Name of the Template'|trans }}' />
-            <br>
-            <textarea name='new_tpl_body' id='new_tpl_txt' style='height:500px;' class='{{ not App.Users.userData.use_markdown ? 'mceditable'}}' rows='50' cols='60'></textarea>
-            <br>
-            <div class='text-center'>
-                <button type="submit" name="Submit" class='button btn btn-primary'>{{ 'Save'|trans }}</button>
-            </div>
-        </form>
-    </div>
-
-    {% for template in templatesArr %}
-      <div class='subdivhandle' id='subtab_{{ template.id }}div'>
-        {% if template.isWritable %}
-        <!-- TAGS -->
-        <i class='fas fa-tags'></i>
-        <label>{{ 'Tags'|trans }}</label>
-        <div class='tags'>
-          <span id='tags_div_{{ template.id }}'>
-            <!--  build the tag array -->
-            {% if template.tags|length > 0 %}
-              {% set tagsIdArr = template.tags_id|split(',') %}
-              {% set tagsValueArr = template.tags|split('|') %}
-              {% for key, tag in tagsValueArr %}
-                {# the key allows to get the id stored in tagsIdArr #}
-                <a class='tag m-1 tag-delete tagUnreferenceForTemplate clickable' data-id='{{ template.id }}' data-tagid='{{ tagsIdArr[key] }}'>
-                    {{ tag|raw }}
-                </a>
-              {% endfor %}
-            {% endif %}
-          </span>
-          <input type='text' style='width:auto' class='createTagInput ml-1' id='createTagInput_{{ template.id }}' data-id='{{ template.id }}' placeholder='{{ 'Add a tag'|trans }}' />
-        </div>
-          <div class='dropdown' style="position: relative; bottom: 5px">
-            <i data-toggle='dropdown' aria-haspopup='true' aria-expanded='false' class='dropdown-toggle fas fa-ellipsis-h fa-2x fa-pull-right clickable' title='{{ 'More options'|trans }}' aria-label='{{ 'More options'|trans }}' /></i>
-            <div class='dropdown-menu' aria-label='{{ 'More options'|trans }}'>
-            <!-- MANAGE PERMISSIONS -->
-            <a class='dropdown-item modalToggle' data-modal='permModal' href='#' data-read="{{ template.canread }}" data-write="{{ template.canwrite }}"><i class='fas fa-share-alt' title='{{ 'Manage Permissions'|trans }}' /></i> {{ 'Manage Permissions'|trans }}</a>
-          </div>
-        </div>
-          <a class='saveToFile' title='Download template' data-name='{{ template.name }}' data-id='e{{ template.id }}'>
-              <i class='fas fa-download fa-pull-right clickable'></i>
-          </a>
-          <a class='destroy-template' title='Destroy template' data-id='{{ template.id }}'>
-              <i class='fas fa-trash-alt fa-pull-right mr-1 clickable'></i>
-          </a>
-
-          <form action='app/controllers/UcpController.php' method='post'>
-            {{ App.Csrf.getHiddenInput|raw }}
-            <input type='hidden' name='tpl_form' />
-            <input type='hidden' name='tpl_id[]' value='{{ template.id }}' />
-            <label for='tplName_{{' template.id' }}'>{{ 'Name'|trans }}</label>
-            <input id='tplName_{{' template.id' }}' name='tpl_name[]' class='form-control' value='{{ template.name|raw }}' />
-            {# the id begins with an 'e' because of this https://github.com/tinymce/tinymce/issues/3011#issuecomment-227993762 #}
-            <label for='e{{ template.id }}'>{{ 'Template content'|trans }}</label>
-            <textarea id='e{{ template.id }}' name='tpl_body[]' class='mceditable' style='height:500px;'>{{ template.body }}</textarea><br />
-            <div class='text-center'>
-              <button type='submit' name='Submit' class='button btn btn-primary'>{{ 'Save'|trans }}</button>
-            </div>
-          </form>
-          {% include('steps-links-edit.html') %}
-        {% else %}
-        <div class="badgetab">
-          <h5 style="display: inline;">{{ template.name }}</h5>
-          {{ 'This template is not editable'|trans|msg('ok', false) }}
-          {% if template.tags|length > 0 %}
-          <span class='tags'><i class='fas fa-tags'></i></span>
-              {% set tagsIdArr = template.tags_id|split(',') %}
-              {% set tagsValueArr = template.tags|split('|') %}
-                {% for key, tag in tagsValueArr %}
-                {# the key allows to get the id stored in tagsIdArr #}
-                     <a class='tag' href=''>{{ tag|raw }}</a>
-                {% endfor %}
-              {% endif %}
-          <div class='mt-2'>
-            {% if template.canread > 0 %}
-              {% for teamGroup in teamGroupsArr if teamGroup.id == template.canread %}
-                <i class='fas fa-eye' title='{{ 'rVisibility'|trans }}'></i> {{ teamGroup.name }}
-              {% endfor %}
-            {% else %}
-                <i class='fas fa-eye' title='{{ 'rVisibility'|trans }}'></i> {{ template.canread }}
-            {% endif %}
-
-            {% if template.canwrite > 0 %}
-            {% for teamGroup in teamGroupsArr if teamGroup.id == template.canwrite %}
-                <i class='fas fa-pencil-alt' title='{{ 'rVisibility'|trans }}'></i> {{ teamGroup.name }}
-            {% endfor %}
-            {% else %}
-                <i class='fas fa-pencil-alt' title='{{ 'rVisibility'|trans }}'></i> {{ template.canwrite }}
-            {% endif %}
-          </div>
-          <h6></h6>
-          <div id='body_view' class='txt'>{{ template.body|raw }}</div>
-            <div class="row">
-              <div class="col-md-6">
-                {% if template.steps|length > 0 %}
-                  <h5 class='mt-2 steps underlined'>Steps</h5>
-                    {% set stepsValueArr = template.steps|split('|') %}
-                    {% for steps in stepsValueArr %}
-                      <ul>
-                        <li><a class='steps text-primary'>{{ steps|raw }}</a></li>
-                      </ul>
-                    {% endfor %}
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                {% if template.links|length > 0 %}
-                  <h5 class='mt-2 steps underlined'>Links</h5>
-                    {% set LinksValueArr = template.links|split('|') %}
-                    {% for links in LinksValueArr %}
-                      <ul>
-                        <li><a class='steps text-primary' href="database.php?mode=view&id={{ links }}">DB{{ links|raw }}</a></li>
-                      </ul>
-                    {% endfor %}
-                {% endif %}
-              </div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    {% endfor %}
-  </div>
+  {% include('show-templates-edit.html') %}
 </div>
 
 <!-- TAB 4 - API KEYS -->
@@ -488,7 +368,7 @@
             <td>{{ key.name }}</td>
             <td>{{ key.can_write ? 'Read/Write'|trans : 'Read Only'|trans }}</td>
             <td>{{ key.created_at }}</td>
-            <td><i class='fas fa-trash-alt fa-2x clickable keyDestroy' title='Delete' data-id='{{ key.id }}' data-confirm="{{ 'Delete this?'|trans }}" /></i></td>
+            <td><i class='fas fa-trash-alt fa-2x clickable keyDestroy' title='Delete' data-id='{{ key.id }}'></i></td>
           </tr>
       {% endfor %}
     </tbody>
@@ -511,9 +391,6 @@
 </div>
 <!-- END PAGE -->
 
-<div id='language' data-lang='{{ App.Users.userData.lang }}'></div>
-<div id='info' data-confirm="{{ 'Delete this?'|trans }}" data-confirmtag="{{ 'Delete this tag?'|trans }}" data-type='experiments_templates'></div>
+<div id='info' data-type='experiments_templates'></div>
 
-<!-- to export templates -->
-<script src='app/js/ucp.bundle.js?v={{ v }}'></script>
 {% endblock body %}

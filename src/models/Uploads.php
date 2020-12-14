@@ -18,7 +18,7 @@ use Elabftw\Exceptions\DatabaseErrorException;
 use Elabftw\Exceptions\FilesystemErrorException;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
-use Elabftw\Interfaces\CrudInterface;
+use Elabftw\Interfaces\DestroyableInterface;
 use Elabftw\Services\Filter;
 use Elabftw\Services\MakeThumbnail;
 use Elabftw\Traits\UploadTrait;
@@ -36,12 +36,12 @@ use function unlink;
 /**
  * All about the file uploads
  */
-class Uploads implements CrudInterface
+class Uploads implements DestroyableInterface
 {
     use UploadTrait;
 
-    /** @var int BIG_FILE_THRESHOLD size of a file in bytes above which we don't process it (5 Mb) */
-    private const BIG_FILE_THRESHOLD = 5000000;
+    /** @var int BIG_FILE_THRESHOLD size of a file in bytes above which we don't process it (50 Mb) */
+    private const BIG_FILE_THRESHOLD = 50000000;
 
     /** @var AbstractEntity $Entity an entity */
     public $Entity;
@@ -89,8 +89,14 @@ class Uploads implements CrudInterface
             $exifData = exif_read_data($fullPath);
             if ($exifData !== false) {
                 $image = new Gmagick($fullPath);
-                $image->rotateimage('#000', $this->getRotationAngle($exifData));
-                $image->write($fullPath);
+                // default is 75
+                $image->setCompressionQuality(100);
+                $rotationAngle = $this->getRotationAngle($exifData);
+                // only do it if needed
+                if ($rotationAngle !== 0) {
+                    $image->rotateimage('#000', $rotationAngle);
+                    $image->write($fullPath);
+                }
             }
         }
         // final sql
@@ -127,9 +133,9 @@ class Uploads implements CrudInterface
      * @param string $fileType 'mol' or 'png'
      * @param string $realName name of the file
      * @param string $content content of the file
-     * @return void
+     * @return int
      */
-    public function createFromString(string $fileType, string $realName, string $content): void
+    public function createFromString(string $fileType, string $realName, string $content): int
     {
         $this->Entity->canOrExplode('write');
 
@@ -157,9 +163,11 @@ class Uploads implements CrudInterface
             throw new FilesystemErrorException('Could not write to file!');
         }
 
-        $this->dbInsert($realName, $longName, $this->getHash($fullPath));
+        $uploadId = $this->dbInsert($realName, $longName, $this->getHash($fullPath));
         $MakeThumbnail = new MakeThumbnail($fullPath);
         $MakeThumbnail->makeThumb();
+
+        return $uploadId;
     }
 
     /**
@@ -240,10 +248,6 @@ class Uploads implements CrudInterface
         $this->Entity->canOrExplode('write');
         $upload = $this->readFromId((int) $request->request->get('upload_id'));
         $fullPath = $this->getUploadsPath() . $upload['long_name'];
-        // check user is same as the previously uploaded file
-        if ((int) $upload['userid'] !== (int) $this->Entity->Users->userData['userid']) {
-            throw new IllegalActionException('User tried to replace an upload of another user.');
-        }
         $this->moveFile($request->files->get('file')->getPathname(), $fullPath);
         $MakeThumbnail = new MakeThumbnail($fullPath);
         $MakeThumbnail->makeThumb(true);
@@ -292,11 +296,8 @@ class Uploads implements CrudInterface
 
     /**
      * Destroy an upload
-     *
-     * @param int $id id of the upload
-     * @return void
      */
-    public function destroy(int $id): void
+    public function destroy(int $id): bool
     {
         $this->Entity->canOrExplode('write');
 
@@ -319,7 +320,7 @@ class Uploads implements CrudInterface
         $req = $this->Db->prepare($sql);
         $req->bindParam(':id', $id, PDO::PARAM_INT);
         $req->bindParam(':type', $this->Entity->type);
-        $this->Db->execute($req);
+        return $this->Db->execute($req);
     }
 
     /**
@@ -339,7 +340,7 @@ class Uploads implements CrudInterface
     /**
      * Get the rotation angle from exif data
      *
-     * @param array $exifData
+     * @param array<string, mixed> $exifData
      * @return int
      */
     private function getRotationAngle(array $exifData): int
@@ -396,7 +397,11 @@ class Uploads implements CrudInterface
     private function getHash(string $file): string
     {
         if (filesize($file) < self::BIG_FILE_THRESHOLD) {
-            return hash_file($this->hashAlgorithm, $file);
+            $hash = hash_file($this->hashAlgorithm, $file);
+            if ($hash === false) {
+                throw new ImproperActionException('Error creating hash from file!');
+            }
+            return $hash;
         }
 
         return '';
@@ -423,9 +428,9 @@ class Uploads implements CrudInterface
      * @param string $hash The hash string of our file
      * @param string|null $comment The file comment
      * @throws DatabaseErrorException
-     * @return void
+     * @return int
      */
-    private function dbInsert(string $realName, string $longName, string $hash, ?string $comment = null): void
+    private function dbInsert(string $realName, string $longName, string $hash, ?string $comment = null): int
     {
         if ($comment === null) {
             $comment = 'Click to add a comment';
@@ -463,5 +468,6 @@ class Uploads implements CrudInterface
         $req->bindParam(':hash', $hash);
         $req->bindParam(':hash_algorithm', $this->hashAlgorithm);
         $this->Db->execute($req);
+        return $this->Db->lastInsertId();
     }
 }

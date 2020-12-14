@@ -40,7 +40,8 @@ try {
     // Check if email domain is correct
     if ($App->Config->configArr['email_domain']) {
         $splitEmail = explode('@', $Request->request->get('email'));
-        if ($splitEmail[1] !== $App->Config->configArr['email_domain']) {
+        $splitDomains = explode(',', $App->Config->configArr['email_domain']);
+        if (!in_array($splitEmail[1], $splitDomains, true)) {
             throw new ImproperActionException(_('This email domain is not allowed.'));
         }
     }
@@ -63,12 +64,12 @@ try {
     );
 
     if ($App->Users->needValidation) {
-        $Session->getFlashBag()->add('ok', _('Registration successful :)<br>Your account must now be validated by an admin.<br>You will receive an email when it is done.'));
+        $App->Session->getFlashBag()->add('ok', _('Registration successful :)<br>Your account must now be validated by an admin.<br>You will receive an email when it is done.'));
     } else {
-        $Session->getFlashBag()->add('ok', _('Registration successful :)<br>Welcome to eLabFTW o/'));
+        $App->Session->getFlashBag()->add('ok', _('Registration successful :)<br>Welcome to eLabFTW o/'));
     }
     // store the email here so we can put it in the login field
-    $Session->set('email', $Request->request->get('email'));
+    $App->Session->set('email', $Request->request->get('email'));
 
     // log user creation
     $App->Log->info('New user created');

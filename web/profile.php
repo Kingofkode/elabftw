@@ -12,6 +12,7 @@ namespace Elabftw\Elabftw;
 
 use function count;
 use Elabftw\Models\Experiments;
+use Elabftw\Models\TeamGroups;
 use Elabftw\Services\UsersHelper;
 use Exception;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,14 +31,20 @@ try {
     // get total number of experiments
     $Entity = new Experiments($App->Users);
     $Entity->addFilter('entity.userid', $App->Users->userData['userid']);
-    $itemsArr = $Entity->readShow();
+    $DisplayParams = new DisplayParams();
+    $DisplayParams->limit = 9999999;
+    $itemsArr = $Entity->readShow($DisplayParams);
     $count = count($itemsArr);
 
     // generate stats for the pie chart with experiments status
     // see https://developers.google.com/chart/interactive/docs/reference?csw=1#datatable-class
     $UserStats = new UserStats($App->Users, $count);
     $UserStats->makeStats();
-    $UsersHelper = new UsersHelper();
+
+    // get the teams
+    $UsersHelper = new UsersHelper((int) $App->Users->userData['userid']);
+    $teams = $UsersHelper->getTeamsFromUserid();
+
     $stats = array();
     // columns
     $stats['cols'] = array(
@@ -58,13 +65,18 @@ try {
     $statsJson = json_encode($stats);
     $colorsJson = json_encode($UserStats->colorsArr);
 
+    // get the team groups in which the user is
+    $TeamGroups = new TeamGroups($App->Users);
+    $teamGroupsArr = $TeamGroups->readGroupsFromUser();
+
     $template = 'profile.html';
     $renderArr = array(
-        'UsersHelper' => $UsersHelper,
         'UserStats' => $UserStats,
         'colorsJson' => $colorsJson,
-        'statsJson' => $statsJson,
         'count' => $count,
+        'statsJson' => $statsJson,
+        'teamGroupsArr' => $teamGroupsArr,
+        'teamsArr' => $teams,
     );
 } catch (Exception $e) {
     $template = 'error.html';

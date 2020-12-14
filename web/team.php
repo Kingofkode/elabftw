@@ -18,6 +18,7 @@ use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Models\Database;
 use Elabftw\Models\Scheduler;
+use Elabftw\Models\TeamGroups;
 use Elabftw\Models\Teams;
 use Elabftw\Models\Templates;
 use Exception;
@@ -34,13 +35,13 @@ $Response = new Response();
 $Response->prepare($Request);
 
 try {
-    if ($App->Session->has('anon')) {
-        throw new IllegalActionException('Anon user tried accessing the team page');
-    }
-
     $Teams = new Teams($App->Users);
     $teamArr = $Teams->read();
     $teamsStats = $Teams->getStats((int) $App->Users->userData['team']);
+
+    $TeamGroups = new TeamGroups($App->Users);
+    $teamGroupsArr = $TeamGroups->read();
+
 
     $Database = new Database($App->Users);
     // we only want the bookable type of items
@@ -50,7 +51,11 @@ try {
     // disabled because takes too much resources
     //$TagCloud = new TagCloud((int) $App->Users->userData['team']);
 
-    $itemsArr = $Database->readShow();
+    $DisplayParams = new DisplayParams();
+    $DisplayParams->adjust($App);
+    // make limit very big because we want to see ALL the bookable items here
+    $DisplayParams->limit = 900000;
+    $itemsArr = $Database->readShow($DisplayParams);
     $itemData = null;
 
     $allItems = true;
@@ -71,7 +76,16 @@ try {
     }
 
     $Templates = new Templates($App->Users);
-    $templatesArr = $Templates->readFromTeam();
+    $templatesArr = $Templates->getTemplatesList();
+    $templateData = array();
+    if ($Request->query->has('templateid')) {
+        $Templates->setId((int) $Request->query->get('templateid'));
+        $templateData = $Templates->read();
+        $permissions = $Templates->getPermissions($templateData);
+        if ($permissions['read'] === false) {
+            throw new IllegalActionException('User tried to access a template without read permissions');
+        }
+    }
 
     $template = 'team.html';
     $renderArr = array(
@@ -83,9 +97,11 @@ try {
         'itemData' => $itemData,
         'selectedItem' => $selectedItem,
         'teamArr' => $teamArr,
+        'teamGroupsArr' => $teamGroupsArr,
         'teamsStats' => $teamsStats,
+        'templateData' => $templateData,
         'templatesArr' => $templatesArr,
-        'lang' => Tools::getCalendarLang($App->Users->userData['lang']),
+        'calendarLang' => Tools::getCalendarLang($App->Users->userData['lang']),
     );
 
     $Response->setContent($App->render($template, $renderArr));

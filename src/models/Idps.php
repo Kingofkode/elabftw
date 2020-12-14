@@ -12,13 +12,13 @@ namespace Elabftw\Models;
 
 use Elabftw\Elabftw\Db;
 use Elabftw\Exceptions\ImproperActionException;
-use Elabftw\Interfaces\CrudInterface;
+use Elabftw\Interfaces\DestroyableInterface;
 use PDO;
 
 /**
  * Store informations about different identity providers for auth with SAML
  */
-class Idps implements CrudInterface
+class Idps implements DestroyableInterface
 {
     /** @var Db $Db SQL Database */
     protected $Db;
@@ -62,25 +62,6 @@ class Idps implements CrudInterface
         $this->Db->execute($req);
 
         return $this->Db->lastInsertId();
-    }
-
-    /**
-     * Read info about an IDP
-     *
-     * @param int $id
-     * @return array
-     */
-    public function read(int $id): array
-    {
-        $sql = 'SELECT * FROM idps WHERE id = :id';
-        $req = $this->Db->prepare($sql);
-        $req->bindParam(':id', $id, PDO::PARAM_INT);
-        $this->Db->execute($req);
-        $res = $req->fetch();
-        if ($res === false) {
-            return array();
-        }
-        return $res;
     }
 
     /**
@@ -145,10 +126,16 @@ class Idps implements CrudInterface
      *
      * @return array
      */
-    public function getActive(): array
+    public function getActive(?int $id = null): array
     {
-        $sql = 'SELECT * FROM idps WHERE active = 1 LIMIT 1';
+        $sql = 'SELECT * FROM idps WHERE active = 1';
+        if ($id !== null) {
+            $sql .= ' AND id = :id';
+        }
         $req = $this->Db->prepare($sql);
+        if ($id !== null) {
+            $req->bindParam(':id', $id, PDO::PARAM_INT);
+        }
         $this->Db->execute($req);
 
         $res = $req->fetch();
@@ -160,15 +147,12 @@ class Idps implements CrudInterface
 
     /**
      * Destroy an IDP
-     *
-     * @param int $id
-     * @return void
      */
-    public function destroy(int $id): void
+    public function destroy(int $id): bool
     {
         $sql = 'DELETE FROM idps WHERE id = :id';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':id', $id, PDO::PARAM_INT);
-        $this->Db->execute($req);
+        return $this->Db->execute($req);
     }
 }

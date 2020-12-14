@@ -6,33 +6,14 @@
  * @package elabftw
  */
 import { notif } from './misc';
+import i18next from 'i18next';
 import tinymce from 'tinymce/tinymce';
-import 'tinymce/plugins/advlist';
-import 'tinymce/plugins/charmap';
-import 'tinymce/plugins/code';
-import 'tinymce/plugins/codesample';
-import 'tinymce/plugins/fullscreen';
-import 'tinymce/plugins/hr';
-import 'tinymce/plugins/image';
-import 'tinymce/plugins/imagetools';
-import 'tinymce/plugins/insertdatetime';
-import 'tinymce/plugins/link';
-import 'tinymce/plugins/lists';
-import 'tinymce/plugins/pagebreak';
-import 'tinymce/plugins/paste';
-import 'tinymce/plugins/save';
-import 'tinymce/plugins/searchreplace';
-import 'tinymce/plugins/table';
-import 'tinymce/plugins/template';
-import 'tinymce/themes/silver';
-import 'tinymce/themes/mobile';
+import { getTinymceBaseConfig } from './tinymce';
 
 $(document).ready(function() {
-  $.ajaxSetup({
-    headers: {
-      'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
-    }
-  });
+  if (window.location.pathname !== '/sysconfig.php') {
+    return;
+  }
   // TEAMS
   const Teams = {
     controller: 'app/controllers/SysconfigAjaxController.php',
@@ -41,7 +22,6 @@ $(document).ready(function() {
       $('#editUserToTeamAction').attr('value', action);
     },
     create: function(): void {
-      (document.getElementById('teamsCreateButton') as HTMLButtonElement).disabled = true;
       const name = $('#teamsName').val();
       $.post(this.controller, {
         teamsCreate: true,
@@ -51,14 +31,15 @@ $(document).ready(function() {
       });
     },
     update: function(id): void {
-      (document.getElementById('teamsUpdateButton_' + id) as HTMLButtonElement).disabled = true;
       const name = $('#teamName_' + id).val();
       const orgid = $('#teamOrgid_' + id).val();
+      const visible = $('#teamVisible_' + id).val();
       $.post(this.controller, {
         teamsUpdate: true,
-        teamsUpdateId : id,
-        teamsUpdateName : name,
-        teamsUpdateOrgid : orgid
+        id : id,
+        name : name,
+        orgid : orgid,
+        visible : visible,
       }).done(function(data) {
         Teams.destructor(data);
       });
@@ -79,10 +60,6 @@ $(document).ready(function() {
       }
     }
   };
-
-  $(document).on('keyup', '.teamNameInput', function() {
-    (document.getElementById('teamsUpdateButton_' + $(this).data('id')) as HTMLButtonElement).disabled = false;
-  });
 
   $(document).on('click', '#teamsCreateButton', function() {
     Teams.create();
@@ -161,10 +138,6 @@ $(document).ready(function() {
     });
   });
 
-  $(document).on('click', '#editSmtpPassword', function() {
-    $('#hidden_smtp_password').toggle();
-  });
-
   // we need to add this otherwise the button will stay disabled with the browser's cache (Firefox)
   const inputList = document.getElementsByTagName('input');
   for (let i=0; i < inputList.length; i++) {
@@ -176,7 +149,7 @@ $(document).ready(function() {
 
   $(document).on('click', '.idpsDestroy', function() {
     const elem = $(this);
-    if (confirm($(this).data('confirm'))) {
+    if (confirm(i18next.t('generic-delete-warning'))) {
       $.post('app/controllers/SysconfigAjaxController.php', {
         idpsDestroy: true,
         id: $(this).data('id')
@@ -189,18 +162,5 @@ $(document).ready(function() {
     }
   });
 
-  tinymce.init({
-    mode: 'specific_textareas',
-    editor_selector: 'mceditable', // eslint-disable-line @typescript-eslint/camelcase
-    browser_spellcheck: true, // eslint-disable-line @typescript-eslint/camelcase
-    skin_url: 'app/css/tinymce', // eslint-disable-line @typescript-eslint/camelcase
-    height: '500',
-    plugins: 'table searchreplace code fullscreen insertdatetime paste charmap lists advlist save image imagetools link pagebreak hr',
-    pagebreak_separator: '<pagebreak>', // eslint-disable-line @typescript-eslint/camelcase
-    toolbar1: 'undo redo | styleselect bold italic underline | alignleft aligncenter alignright alignjustify | superscript subscript | bullist numlist outdent indent | forecolor backcolor | charmap | codesample | link',
-    removed_menuitems: 'newdocument, image', // eslint-disable-line @typescript-eslint/camelcase
-    image_caption: false, // eslint-disable-line @typescript-eslint/camelcase
-    content_style: '.mce-content-body {font-size:10pt;}', // eslint-disable-line @typescript-eslint/camelcase
-    language: 'en_GB'
-  });
+  tinymce.init(getTinymceBaseConfig('sysconfig'));
 });

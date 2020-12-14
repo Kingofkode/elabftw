@@ -85,22 +85,19 @@ class MakeReport
     protected function getRows(): array
     {
         $allUsers = $this->Teams->Users->readFromQuery('');
-        $UsersHelper = new UsersHelper();
         foreach ($allUsers as $key => $user) {
+            $UsersHelper = new UsersHelper((int) $user['userid']);
             // get the teams of user
-            $teams = implode(',', $UsersHelper->getTeamsNameFromUserid((int) $user['userid']));
+            $teams = implode(',', $UsersHelper->getTeamsNameFromUserid());
             // get disk usage for all uploaded files
             $diskUsage = $this->getDiskUsage((int) $user['userid']);
             // get total number of experiments
             $Entity = new Experiments(new Users((int) $user['userid']));
-            $Entity->addFilter('entity.userid', $user['userid']);
-            $itemsArr = $Entity->readShow();
-            $count = \count($itemsArr);
 
             $allUsers[$key]['team(s)'] = $teams;
             $allUsers[$key]['diskusage_in_bytes'] = $diskUsage;
             $allUsers[$key]['diskusage_formatted'] = Tools::formatBytes($diskUsage);
-            $allUsers[$key]['exp_total'] = $count;
+            $allUsers[$key]['exp_total'] = $Entity->countAll();
         }
         return $allUsers;
     }
