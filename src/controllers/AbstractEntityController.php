@@ -151,7 +151,7 @@ abstract class AbstractEntityController implements ControllerInterface
             'searchType' => $isSearchPage ? 'something' : $DisplayParams->searchType,
             'tagsArr' => $tagsArr,
             'tagsArrForSelect' => $tagsArrForSelect,
-            'templatesArr' => $this->Templates->readForUser(),
+            'templatesArr' => $this->Templates->getTemplatesList(),
             'visibilityArr' => $TeamGroups->getVisibilityList(),
         );
         $Response = new Response();
@@ -192,7 +192,7 @@ abstract class AbstractEntityController implements ControllerInterface
             'mode' => 'view',
             'revNum' => $Revisions->readCount(),
             'stepsArr' => $this->Entity->Steps->read(),
-            'templatesArr' => $this->Templates->readForUser(),
+            'templatesArr' => $this->Templates->getTemplatesList(),
             'timestampInfo' => $this->Entity->getTimestampInfo(),
             'uploadsArr' => $this->Entity->Uploads->readAll(),
         );
@@ -243,7 +243,7 @@ abstract class AbstractEntityController implements ControllerInterface
             'mode' => 'edit',
             'revNum' => $Revisions->readCount(),
             'stepsArr' => $this->Entity->Steps->read(),
-            'templatesArr' => $this->Templates->readForUser(),
+            'templatesArr' => $this->Templates->getTemplatesList(),
             'uploadsArr' => $this->Entity->Uploads->readAll(),
             'visibilityArr' => $TeamGroups->getVisibilityList(),
         );
