@@ -175,12 +175,12 @@
           <input id='show_team_templates' type='checkbox' name='show_team_templates'
                 {{ App.Users.userData.show_team_templates == '1' ? " checked='checked'" }}
           />
-        {% endif %}
-        <label for='show_team_templates'>{{ 'Show templates from the team on the Templates page and in the menus'|trans }}</label>
+          <label for='show_team_templates'>{{ 'Show templates from the team on the Templates page and in the menus'|trans }}</label>
         <br>
         <input id='chem_editor' type='checkbox' name='chem_editor'
           {{ App.Users.userData.chem_editor == '1' ? " checked='checked'" }}
         />
+        {% endif %}
         <label for='chem_editor'>{{ 'Display the molecule editor in edit mode'|trans }}</label>
         <br>
         <input id='json_editor' type='checkbox' name='json_editor'
